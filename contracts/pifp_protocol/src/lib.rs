@@ -11,6 +11,24 @@ mod test;
 use storage::{get_and_increment_project_id, get_oracle, load_project, save_project, set_oracle};
 pub use types::{Project, ProjectStatus};
 
+#[contracttype]
+pub enum DataKey {
+    Project(BytesN<32>),
+}
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum Error {
+    ProjectNotFound = 1,
+    MilestoneNotFound = 2,
+    MilestoneAlreadyReleased = 3,
+    InsufficientBalance = 4,
+    InvalidMilestones = 5,
+    NotAuthorized = 6,
+    GoalMismatch = 7,
+}
+
 #[contract]
 pub struct PifpProtocol;
 
@@ -34,7 +52,7 @@ impl PifpProtocol {
         creator.require_auth();
 
         if goal <= 0 {
-            panic!("goal must be positive");
+            panic_with_error!(&env, Error::InvalidMilestones);
         }
 
         if deadline <= env.ledger().timestamp() {
